@@ -1,33 +1,21 @@
 import { useState, useRef } from "react";
-
 const API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY;
 const APP_PASSWORD = import.meta.env.VITE_APP_PASSWORD;
-
 const ZOE_KNOWLEDGE = `
 # DAN'S PERSONAL ZOE PROFILE (tested Feb-Mar 2024)
 - Blood Sugar Control: 29/100 — POOR. Spikes harder and longer than most. Carbs and sugar are especially bad for Dan.
 - Blood Fat Control: 65/100 — GOOD. Tolerates healthy fats well.
 - PRIORITY: Blood sugar management is Dan's #1 dietary goal.
-
 ## SCORING: 75-100 Enjoy freely | 50-74 Enjoy regularly | 25-49 Moderation | 0-24 Once in a while
-
 ## TOP FOODS (75-100): Almonds 95 | Almond butter 89 | Artichoke hearts canned 97 | Avocado 91-97 | Black beans 97 | Blackberries wild 97 | Brazil nuts 100 | Brussels sprouts 92 | Butter beans canned 92 | Cashew nuts 85-86 | Catfish 88 | Cauliflower 82 | Cherries 87 | Chicken breast 70 | Chickpeas canned 82 | Chickpeas roasted 89 | Cod 89 | Coffee black 84 | Courgette 83 | Cucumber 85-95 | Eggs 77 | Green beans 98 | Hazelnuts 100 | Hummus 82-90 | Kale 86 | Kerry Kefir 76-78 | Kimchi Daikon 90 | Leon Hummus 85 | Mushrooms 100 | Pistachios Aldi 100
-
 ## GOOD FOODS (50-74): Almond milk unsweetened 56 | Apple 71 | Baked beans 58 | Blackberries 79 | Bulgur wheat 59 | Butter 58 | Butternut squash 68 | Cashew butter 69 | Cheese Cheddar 67 | Cheese Emmental 76 | Cheese Mozzarella 70 | Coffee black 84 | Dark chocolate >70% 56 | Eggs 77 | Kimchi 60-75 | Kefir plain 62 | Oat milk unsweetened 50 | Califia Farms Oat Barista 48
-
 ## MODERATE (25-49): Banana 41 | Blueberries 46 | Bread sourdough shop 24-29 | Crisps 38 | Dark chocolate 42 | Grapes 43 | Oats 40-48
-
 ## POOR (0-24): Apple juice 12 | Bagels 0-5 | White bread 0 | Bacon 4-19 | Couscous 13-17 | Flipz pretzels 4-13 | Nando's Chips 21 | Pizza 24-29
-
 ## GUT SUPPRESSORS: Bagels | Cornflakes | Chicken nuggets | Doughnuts
-
 ## FERMENTED (great): All Kimchi 60-90 | All Kefir 46-83
-
 ## NANDO'S: Chips 21 | Quarter Chicken 46 | Wings 43 | Beanie Wrap 62 | Double Chicken Wrap 54 | Fully Loaded Wrap 56 | Coleslaw 66 | Houmous Set 85 | Chilli Jam 2 | Diet Coke 34 | Coca-Cola 0
-
 ## OAT MILKS: Oat milk unsweetened 50 | Califia Farms Oat Barista 48 | Jord Oat Drink 36
 `;
-
 const GG_KNOWLEDGE = `
 # GLUCOSE GODDESS PRINCIPLES (especially important — Dan's blood sugar is 29/100)
 1. Eat in right order: veg/fibre first → protein/fat → carbs/sugar last
@@ -40,22 +28,17 @@ const GG_KNOWLEDGE = `
 8. Savoury snacks: nuts/cheese/hummus/eggs not fruit bars
 KEY PAIRINGS: Rice/pasta → veg+protein first | Fruit → after meals | Oats → add nut butter | Sushi → edamame/miso first
 `;
-
 const UPF_KNOWLEDGE = `
 # ULTRA PROCESSED FOOD (van Tulleken — Ultra Processed People)
 NOVA 4 UPF if contains: lecithin, mono/diglycerides E471, carrageenan, polysorbate 80, xanthan/gellan gum, sucralose, aspartame, acesulfame K, maltodextrin as filler, protein isolates, sodium benzoate, potassium sorbate, hydrogenated oils, "natural flavourings" as only flavour.
 UPF TRAPS: Supermarket sourdough | Most oat milks | Protein bars | Most granola | Carton smoothies | Low-fat products | Huel | Plant-based meats | Richmond sausages
 NOT UPF: Plain Greek yoghurt | Real cheese | Tinned fish | Tinned beans | Frozen plain veg | Real nut butter | Real sourdough | Dark choc 85%+
 `;
-
 const SYSTEM_PROMPT = `You are Dan's personal food consultant — part nutritionist, part stand-up comedian. Warm, funny, opinionated. Not preachy. Call out bad choices with a raised eyebrow, celebrate good ones. Dry wit welcome.
-
 Dan's ZOE results: Blood Sugar 29/100 (POOR - spikes hard), Blood Fat 65/100 (GOOD). Daily protein target: 140g.
-
 ${ZOE_KNOWLEDGE}
 ${GG_KNOWLEDGE}
 ${UPF_KNOWLEDGE}
-
 BROAD QUESTIONS (category varies by brand e.g. "oat milk", "granola", "bread"):
 BROAD: true
 CATEGORY: [name]
@@ -65,7 +48,6 @@ VARIANTS:
 - OK: [name] | [why]
 - AVOID: [name] | [why]
 FOLLOWUP: [short question]
-
 SPECIFIC FOODS:
 ZOE_SCORE: [1-10]
 GG_SCORE: [1-10]
@@ -78,9 +60,7 @@ SUMMARY: [2-3 witty sentences factoring in Dan's blood sugar]
 TIPS:
 - [specific food pairing or eating order tip]
 - [second tip only if useful]
-
 Scoring: ZOE=gut/fat (10=great), GG=glucose spike for Dan specifically (strict, 10=no spike), UPF=processing (10=whole food). Tips = food/eating order only.`;
-
 function fileToBase64(file) {
   return new Promise((res, rej) => {
     const r = new FileReader();
@@ -89,7 +69,6 @@ function fileToBase64(file) {
     r.readAsDataURL(file);
   });
 }
-
 async function askClaude(messages) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 90000);
@@ -106,7 +85,6 @@ async function askClaude(messages) {
     return d.content.filter(b => b.type === "text").map(b => b.text).join("\n");
   } catch(e) { clearTimeout(t); throw e; }
 }
-
 function parseBroad(text) {
   if (!text.includes("BROAD: true")) return null;
   const category = text.match(/CATEGORY:\s*(.+)/)?.[1]?.trim();
@@ -121,7 +99,6 @@ function parseBroad(text) {
   if (avoidM) { const [name, why] = avoidM[1].split("|").map(s => s.trim()); variants.push({ type: "avoid", name, why }); }
   return { category, headline, followup, variants };
 }
-
 function parseReply(text) {
   const z = text.match(/ZOE_SCORE:\s*(\d+)/)?.[1];
   const g = text.match(/GG_SCORE:\s*(\d+)/)?.[1];
@@ -136,7 +113,6 @@ function parseReply(text) {
   if (!z || !g || !u) return null;
   return { zoe: parseInt(z), gg: parseInt(g), upf: parseInt(u), proteinG, verdict, source, identified, summary, tips };
 }
-
 function ScoreCircle({ label, score, icon }) {
   const color = score >= 7 ? "#00c875" : score >= 4 ? "#ffb800" : "#ff4444";
   const size = 72; const r = 28; const circ = 2 * Math.PI * r; const dash = (score / 10) * circ;
@@ -156,7 +132,6 @@ function ScoreCircle({ label, score, icon }) {
     </div>
   );
 }
-
 function BroadCard({ data, onFollowup }) {
   const typeStyle = {
     best: { bg: "#e6fff5", border: "#00c875", icon: "✅", label: "Best pick" },
@@ -196,7 +171,6 @@ function BroadCard({ data, onFollowup }) {
     </div>
   );
 }
-
 function ResultCard({ m }) {
   const broad = parseBroad(m.text || "");
   if (broad) return null;
@@ -209,7 +183,6 @@ function ResultCard({ m }) {
   const avg = Math.round((p.zoe + p.gg + p.upf) / 3);
   const vStyle = avg >= 7 ? { label: "Great choice! 🎉", bg: "linear-gradient(135deg,#00b865,#00c875)" } : avg >= 4 ? { label: "OK in moderation ⚠️", bg: "linear-gradient(135deg,#f0a500,#ffb800)" } : { label: "Best avoided ❌", bg: "linear-gradient(135deg,#e03030,#ff4444)" };
   const isPersonal = p.source?.toLowerCase().includes("zoe");
-
   return (
     <div style={{ maxWidth: "92%", alignSelf: "flex-start", display: "flex", flexDirection: "column", gap: 8 }}>
       {p.identified && p.identified !== "N/A" && (
@@ -266,38 +239,32 @@ function ResultCard({ m }) {
     </div>
   );
 }
-
-function PasswordScreen({ onUnlock }) {
-  const [val, setVal] = useState("");
-  const [err, setErr] = useState(false);
-  function check() {
-    if (val === APP_PASSWORD) { onUnlock(); }
-    else { setErr(true); setTimeout(() => setErr(false), 1500); }
+function LockScreen({ onUnlock }) {
+  const [taps, setTaps] = useState([]);
+  const SECRET_ZONE = { x: [0, 100], y: [0, 50] }; // anywhere in top half
+  const REQUIRED = 3;
+  const TIMEOUT = 2000;
+  const timerRef = useRef(null);
+  function handleTap(e) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const xPct = ((e.clientX - rect.left) / rect.width) * 100;
+    const yPct = ((e.clientY - rect.top) / rect.height) * 100;
+    const inZone = xPct >= SECRET_ZONE.x[0] && xPct <= SECRET_ZONE.x[1] && yPct >= SECRET_ZONE.y[0] && yPct <= SECRET_ZONE.y[1];
+    if (!inZone) return;
+    clearTimeout(timerRef.current);
+    const newTaps = [...taps, Date.now()];
+    setTaps(newTaps);
+    if (newTaps.length >= REQUIRED) { onUnlock(); return; }
+    timerRef.current = setTimeout(() => setTaps([]), TIMEOUT);
   }
   return (
-    <div style={{ height: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg,#1b4332,#2d6a4f)", padding: 24 }}>
-      <div style={{ fontSize: 56, marginBottom: 16 }}>🥦</div>
-      <div style={{ color: "white", fontWeight: 900, fontSize: 26, marginBottom: 6 }}>Food Consultant</div>
-      <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 14, marginBottom: 32 }}>Dan's personal nutrition advisor</div>
-      <div style={{ background: "white", borderRadius: 24, padding: 28, width: "100%", maxWidth: 320, boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: "#1b4332", marginBottom: 12 }}>Enter password</div>
-        <input
-          type="password"
-          value={val}
-          onChange={e => setVal(e.target.value)}
-          onKeyDown={e => e.key === "Enter" && check()}
-          placeholder="Password"
-          style={{ width: "100%", padding: "12px 16px", borderRadius: 12, border: err ? "2px solid #ff4444" : "2px solid #d0e8da", fontSize: 16, fontFamily: "inherit", outline: "none", boxSizing: "border-box", marginBottom: 12, background: err ? "#fff0f0" : "white", transition: "border 0.2s" }}
-          autoFocus
-        />
-        <button onClick={check} style={{ width: "100%", padding: "13px", background: "linear-gradient(135deg,#1b4332,#40916c)", color: "white", border: "none", borderRadius: 12, cursor: "pointer", fontSize: 16, fontWeight: 700 }}>
-          {err ? "Wrong password 🙅" : "Let me in →"}
-        </button>
-      </div>
+    <div onClick={handleTap} style={{ height: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "#f5f8f5", padding: 24, userSelect: "none", cursor: "default" }}>
+      <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.3 }}>🍽️</div>
+      <div style={{ fontSize: 18, fontWeight: 700, color: "#ccc", marginBottom: 8 }}>Nothing to see here</div>
+      <div style={{ fontSize: 13, color: "#ddd" }}>This page is private.</div>
     </div>
   );
 }
-
 export default function App() {
   const [unlocked, setUnlocked] = useState(false);
   const [chat, setChat] = useState([]);
@@ -306,9 +273,7 @@ export default function App() {
   const [image, setImage] = useState(null);
   const endRef = useRef(null);
   const scroll = () => setTimeout(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
-
-  if (!unlocked) return <PasswordScreen onUnlock={() => setUnlocked(true)} />;
-
+  if (!unlocked) return <LockScreen onUnlock={() => setUnlocked(true)} />;
   async function send(txt) {
     const msg = txt !== undefined ? txt : input;
     if (!msg.trim() && !image) return;
@@ -327,9 +292,7 @@ export default function App() {
     }
     setLoading(false); scroll();
   }
-
   const isEmpty = chat.length === 0;
-
   return (
     <div style={{ fontFamily: "system-ui,sans-serif", maxWidth: 600, margin: "0 auto", height: "100vh", height: "100dvh", display: "flex", flexDirection: "column", background: "#f5f8f5" }}>
       <div style={{ background: "linear-gradient(135deg,#1b4332,#2d6a4f)", padding: "16px 20px", flexShrink: 0 }}>
@@ -341,7 +304,6 @@ export default function App() {
           </div>
         </div>
       </div>
-
       <div style={{ flex: 1, overflowY: "auto", padding: "20px 14px 10px", display: "flex", flexDirection: "column", gap: 12 }}>
         {isEmpty && (
           <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "40px 20px" }}>
@@ -368,7 +330,6 @@ export default function App() {
         )}
         <div ref={endRef} />
       </div>
-
       <div style={{ padding: "10px 14px 16px", background: "white", borderTop: "2px solid #eef2ee", flexShrink: 0, position: "sticky", bottom: 0 }}>
         {image && (
           <div style={{ marginBottom: 10, position: "relative", display: "inline-block", maxWidth: "100%" }}>
