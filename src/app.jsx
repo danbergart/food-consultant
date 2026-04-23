@@ -66,19 +66,23 @@ VARIANTS:
 - AVOID: [name] | [why]
 FOLLOWUP: [short question]
 
-IMPORTANT: Respond in plain text only. No JSON. No code blocks. No backticks. Use this EXACT format with these EXACT labels on separate lines:
+CRITICAL FORMAT RULES - follow exactly or the app breaks:
+- No markdown. No bold. No asterisks. No headers. No code blocks. No backticks.
+- Do not add a title line at the start.
+- Each score must be a single integer only - not "9/10", just "9"
+- Start your response with ZOE_SCORE: on the very first line, nothing before it.
 
-ZOE_SCORE: [1-10]
-GG_SCORE: [1-10]
-UPF_SCORE: [1-10]
-PROTEIN_G: [number]
-VERDICT: [3-6 words]
+ZOE_SCORE: [integer 1-10]
+GG_SCORE: [integer 1-10]
+UPF_SCORE: [integer 1-10]
+PROTEIN_G: [integer]
+VERDICT: [3-6 words, no punctuation]
 DATA_SOURCE: [your personal Zoe data OR general nutritional knowledge]
 IDENTIFIED: [what you see in photo, or N/A]
-SUMMARY: [2-3 witty sentences]
+SUMMARY: [2-3 sentences, no bold, no asterisks]
 TIPS:
 - [tip one]
-- [tip two if useful]
+- [tip two if useful, else omit this line]
 
 Scoring: ZOE=gut/fat (10=great), GG=glucose spike for Dan specifically (strict, 10=no spike), UPF=processing (10=whole food). Tips = food/eating order only.`;
 
@@ -124,15 +128,16 @@ function parseBroad(text) {
 }
 
 function parseReply(text) {
-  const z = text.match(/ZOE_SCORE:\s*(\d+)/)?.[1];
-  const g = text.match(/GG_SCORE:\s*(\d+)/)?.[1];
-  const u = text.match(/UPF_SCORE:\s*(\d+)/)?.[1];
-  const verdict = text.match(/VERDICT:\s*(.+)/)?.[1]?.trim();
-  const source = text.match(/DATA_SOURCE:\s*(.+)/)?.[1]?.trim();
-  const identified = text.match(/IDENTIFIED:\s*(.+)/)?.[1]?.trim();
-  const proteinG = parseInt(text.match(/PROTEIN_G:\s*(\d+)/)?.[1] || "0");
-  const summary = text.match(/SUMMARY:\s*([\s\S]+?)(?=TIPS:|$)/)?.[1]?.trim();
-  const tipsBlock = text.match(/TIPS:([\s\S]+)$/)?.[1] || "";
+  const z = text.replace(/\*\*/g, "").match(/ZOE_SCORE:\s*(\d+)/)?.[1];
+  const g = text.replace(/\*\*/g, "").match(/GG_SCORE:\s*(\d+)/)?.[1];
+  const u = text.replace(/\*\*/g, "").match(/UPF_SCORE:\s*(\d+)/)?.[1];
+  const clean = text.replace(/\*\*/g, "");
+  const verdict = clean.match(/VERDICT:\s*(.+)/)?.[1]?.trim();
+  const source = clean.match(/DATA_SOURCE:\s*(.+)/)?.[1]?.trim();
+  const identified = clean.match(/IDENTIFIED:\s*(.+)/)?.[1]?.trim();
+  const proteinG = parseInt(clean.match(/PROTEIN_G:\s*(\d+)/)?.[1] || "0");
+  const summary = clean.match(/SUMMARY:\s*([\s\S]+?)(?=TIPS:|$)/)?.[1]?.trim();
+  const tipsBlock = clean.match(/TIPS:([\s\S]+)$/)?.[1] || "";
   const tips = tipsBlock.trim().split("\n").filter(t => t.trim().match(/^[-•*]/)).map(t => t.replace(/^[-•*]\s*/, "").trim()).filter(Boolean).slice(0, 2);
   if (!z || !g || !u) return null;
   return { zoe: parseInt(z), gg: parseInt(g), upf: parseInt(u), proteinG, verdict, source, identified, summary, tips };
