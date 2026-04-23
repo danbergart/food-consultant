@@ -66,18 +66,19 @@ VARIANTS:
 - AVOID: [name] | [why]
 FOLLOWUP: [short question]
 
-SPECIFIC FOODS:
+IMPORTANT: Respond in plain text only. No JSON. No code blocks. No backticks. Use this EXACT format with these EXACT labels on separate lines:
+
 ZOE_SCORE: [1-10]
 GG_SCORE: [1-10]
 UPF_SCORE: [1-10]
-PROTEIN_G: [grams per typical serving, number only, 0 if unknown]
+PROTEIN_G: [number]
 VERDICT: [3-6 words]
 DATA_SOURCE: [your personal Zoe data OR general nutritional knowledge]
 IDENTIFIED: [what you see in photo, or N/A]
-SUMMARY: [2-3 witty sentences factoring in Dan's blood sugar]
+SUMMARY: [2-3 witty sentences]
 TIPS:
-- [specific food pairing or eating order tip]
-- [second tip only if useful]
+- [tip one]
+- [tip two if useful]
 
 Scoring: ZOE=gut/fat (10=great), GG=glucose spike for Dan specifically (strict, 10=no spike), UPF=processing (10=whole food). Tips = food/eating order only.`;
 
