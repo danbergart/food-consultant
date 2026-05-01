@@ -307,7 +307,7 @@ export default function App() {
   const [chat, setChat] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [image, setImage] = useState(null);
+  const [images, setImages] = useState([]);
   const endRef = useRef(null);
   const scroll = () => setTimeout(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
 
@@ -315,14 +315,16 @@ export default function App() {
 
   async function send(txt) {
     const msg = txt !== undefined ? txt : input;
-    if (!msg.trim() && !image) return;
+    if (!msg.trim() && images.length === 0) return;
     setLoading(true);
     const userContent = [];
-    if (image) userContent.push({ type: "image", source: { type: "base64", media_type: image.type, data: image.b64 } });
+    for (const img of images) {
+      userContent.push({ type: "image", source: { type: "base64", media_type: img.type, data: img.b64 } });
+    }
     if (msg.trim()) userContent.push({ type: "text", text: msg });
-    const userMsg = { role: "user", content: userContent, text: msg, preview: image?.preview };
+    const userMsg = { role: "user", content: userContent, text: msg, previews: images.map(i => i.preview) };
     const newChat = [...chat, userMsg];
-    setChat(newChat); setInput(""); setImage(null); scroll();
+    setChat(newChat); setInput(""); setImages([]); scroll();
     try {
       const reply = await askClaude(newChat.map(m => ({ role: m.role, content: m.content })));
       setChat(c => [...c, { role: "assistant", text: reply, content: [{ type: "text", text: reply }] }]);
@@ -374,19 +376,25 @@ export default function App() {
       </div>
 
       <div style={{ padding: "10px 14px 16px", background: "white", borderTop: "2px solid #eef2ee", flexShrink: 0, position: "sticky", bottom: 0 }}>
-        {image && (
-          <div style={{ marginBottom: 10, position: "relative", display: "inline-block", maxWidth: "100%" }}>
-            <img src={image.preview} style={{ maxWidth: "100%", maxHeight: 120, width: "auto", height: "auto", borderRadius: 12, border: "3px solid #2d6a4f", display: "block" }} />
-            <button onClick={() => setImage(null)} style={{ position: "absolute", top: -8, right: -8, background: "#ff4444", color: "white", border: "none", borderRadius: "50%", width: 24, height: 24, cursor: "pointer", fontSize: 14, fontWeight: 700, lineHeight: "24px", textAlign: "center" }}>×</button>
+        {images.length > 0 && (
+          <div style={{ marginBottom: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {images.map((img, i) => (
+              <div key={i} style={{ position: "relative", display: "inline-block" }}>
+                <img src={img.preview} style={{ height: 64, width: "auto", borderRadius: 10, border: "3px solid #2d6a4f", display: "block" }} />
+                <button onClick={() => setImages(imgs => imgs.filter((_, j) => j !== i))} style={{ position: "absolute", top: -8, right: -8, background: "#ff4444", color: "white", border: "none", borderRadius: "50%", width: 22, height: 22, cursor: "pointer", fontSize: 13, fontWeight: 700, lineHeight: "22px", textAlign: "center" }}>×</button>
+              </div>
+            ))}
           </div>
         )}
         <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
           <label style={{ flexShrink: 0, width: 48, height: 48, background: "linear-gradient(135deg,#1b4332,#40916c)", borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 20, boxShadow: "0 3px 10px rgba(27,67,50,0.3)" }}>
             📷
-            <input type="file" accept="image/*" capture="environment" style={{ display: "none" }} onChange={async e => {
-              const f = e.target.files?.[0]; if (!f) return;
-              const b64 = await fileToBase64(f);
-              setImage({ b64, type: f.type, preview: URL.createObjectURL(f) });
+            <input type="file" accept="image/*" capture="environment" multiple style={{ display: "none" }} onChange={async e => {
+              const files = Array.from(e.target.files || []);
+              const newImgs = await Promise.all(files.map(async f => ({
+                b64: await fileToBase64(f), type: f.type, preview: URL.createObjectURL(f)
+              })));
+              setImages(imgs => [...imgs, ...newImgs].slice(0, 4));
               e.target.value = "";
             }} />
           </label>
@@ -399,7 +407,7 @@ export default function App() {
             style={{ flex: 1, padding: "13px 16px", borderRadius: 16, border: "2px solid #d0e8da", resize: "none", fontSize: 15, fontFamily: "inherit", outline: "none", minHeight: 48, maxHeight: 120, lineHeight: 1.4, background: "#f9fcf9" }}
             rows={1}
           />
-          <button onClick={() => send()} disabled={loading || (!input.trim() && !image)} style={{ flexShrink: 0, width: 48, height: 48, background: (!input.trim() && !image) ? "#ddd" : "linear-gradient(135deg,#1b4332,#40916c)", color: "white", border: "none", borderRadius: 16, cursor: (!input.trim() && !image) ? "not-allowed" : "pointer", fontSize: 20, boxShadow: (!input.trim() && !image) ? "none" : "0 3px 10px rgba(27,67,50,0.3)", transition: "all 0.2s" }}>↑</button>
+          <button onClick={() => send()}           disabled={loading || (!input.trim() && images.length === 0)}             style={{ flexShrink: 0, width: 48, height: 48, background: (!input.trim() && images.length === 0) ? "#ddd" : "linear-gradient(135deg,#1b4332,#40916c)", color: "white", border: "none", borderRadius: 16, cursor: (!input.trim() && images.length === 0) ? "not-allowed" : "pointer", fontSize: 20, boxShadow: (!input.trim() && images.length === 0) ? "none" : "0 3px 10px rgba(27,67,50,0.3)", transition: "all 0.2s" }}>↑</button>
         </div>
       </div>
       <style>{`@keyframes bounce{0%,80%,100%{transform:scale(0.6);opacity:0.4}40%{transform:scale(1);opacity:1}}`}</style>
