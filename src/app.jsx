@@ -236,7 +236,7 @@ function RecipeCard({ data }) {
   );
 }
 
-({ label, score, icon }) {
+function ScoreCircle({ label, score, icon }) {
   const color = score >= 7 ? "#00c875" : score >= 4 ? "#ffb800" : "#ff4444";
   const size = 72; const r = 28; const circ = 2 * Math.PI * r; const dash = (score / 10) * circ;
   return (
