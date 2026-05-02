@@ -389,7 +389,7 @@ export default function App() {
         <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
           <label style={{ flexShrink: 0, width: 48, height: 48, background: "linear-gradient(135deg,#1b4332,#40916c)", borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 20, boxShadow: "0 3px 10px rgba(27,67,50,0.3)" }}>
             📷
-            <input type="file" accept="image/*" capture="environment" multiple style={{ display: "none" }} onChange={async e => {
+            <input type="file" accept="image/*" multiple style={{ display: "none" }} onChange={async e => {
               const files = Array.from(e.target.files || []);
               const newImgs = await Promise.all(files.map(async f => ({
                 b64: await fileToBase64(f), type: f.type, preview: URL.createObjectURL(f)
