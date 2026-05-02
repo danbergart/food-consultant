@@ -56,7 +56,27 @@ ${ZOE_KNOWLEDGE}
 ${GG_KNOWLEDGE}
 ${UPF_KNOWLEDGE}
 
-BROAD QUESTIONS (category varies by brand e.g. "oat milk", "granola", "bread"):
+RECIPE REQUESTS (when Dan mentions ingredients, asks for recipe ideas, or asks what to make):
+Respond with RECIPE format — do NOT use the score card format for these.
+
+RECIPE: true
+INTRO: [1 witty sentence acknowledging what Dan has]
+
+OPTION_1_NAME: [recipe name]
+OPTION_1_SCORE: [1-10 overall healthiness for Dan]
+OPTION_1_VERDICT: [good/ok/avoid and why in 1 sentence]
+OPTION_1_METHOD: [3-5 short steps, each on a new line starting with a number]
+OPTION_1_TIP: [one glucose/nutrition tip specific to this recipe]
+
+OPTION_2_NAME: [recipe name]
+OPTION_2_SCORE: [1-10]
+OPTION_2_VERDICT: [good/ok/avoid and why in 1 sentence]
+OPTION_2_METHOD: [3-5 short steps]
+OPTION_2_TIP: [one tip]
+
+BEST_PICK: [name of the better option and one sentence why it wins for Dan specifically]
+
+Always suggest the healthiest practical options given the ingredients. If the ingredients are all high sugar (like fruits for dessert), suggest ways to make them work — e.g. pair with Greek yoghurt and nuts to flatten the glucose spike, or make a chia seed pudding base. Never just say everything is bad. Always find a constructive angle.
 BROAD: true
 CATEGORY: [name]
 HEADLINE: [1 sentence]
@@ -143,7 +163,80 @@ function parseReply(text) {
   return { zoe: parseInt(z), gg: parseInt(g), upf: parseInt(u), proteinG, verdict, source, identified, summary, tips };
 }
 
-function ScoreCircle({ label, score, icon }) {
+function parseRecipe(text) {
+  if (!text.includes("RECIPE: true")) return null;
+  const intro = text.match(/INTRO:\s*(.+)/)?.[1]?.trim();
+  const bestPick = text.match(/BEST_PICK:\s*([\s\S]+?)(?=OPTION_|$)/)?.[1]?.trim();
+  const options = [];
+  for (let n = 1; n <= 3; n++) {
+    const name = text.match(new RegExp(`OPTION_${n}_NAME:\\s*(.+)`))?.[1]?.trim();
+    if (!name) break;
+    const score = parseInt(text.match(new RegExp(`OPTION_${n}_SCORE:\\s*(\\d+)`))?.[1] || "5");
+    const verdict = text.match(new RegExp(`OPTION_${n}_VERDICT:\\s*(.+)`))?.[1]?.trim();
+    const methodBlock = text.match(new RegExp(`OPTION_${n}_METHOD:\\s*([\\s\\S]+?)(?=OPTION_${n}_TIP:)`))?.[1]?.trim();
+    const tip = text.match(new RegExp(`OPTION_${n}_TIP:\\s*(.+)`))?.[1]?.trim();
+    const steps = methodBlock ? methodBlock.split("\n").filter(s => s.trim()).map(s => s.replace(/^\d+[\.\)]\s*/, "").trim()) : [];
+    options.push({ name, score, verdict, steps, tip });
+  }
+  return { intro, options, bestPick };
+}
+
+function RecipeCard({ data }) {
+  const [open, setOpen] = useState(0);
+  return (
+    <div style={{ maxWidth: "96%", alignSelf: "flex-start", display: "flex", flexDirection: "column", gap: 8 }}>
+      {data.intro && (
+        <div style={{ background: "linear-gradient(135deg,#1b4332,#2d6a4f)", borderRadius: 20, padding: "12px 16px" }}>
+          <div style={{ color: "white", fontWeight: 700, fontSize: 15 }}>👨‍🍳 Recipe Ideas</div>
+          <div style={{ color: "rgba(255,255,255,0.85)", fontSize: 13, marginTop: 4 }}>{data.intro}</div>
+        </div>
+      )}
+      {data.options.map((opt, i) => {
+        const color = opt.score >= 7 ? "#00c875" : opt.score >= 4 ? "#ffb800" : "#ff4444";
+        const isOpen = open === i;
+        return (
+          <div key={i} style={{ background: "white", borderRadius: 20, overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.08)", border: isOpen ? `2px solid ${color}` : "2px solid transparent" }}>
+            <button onClick={() => setOpen(isOpen ? -1 : i)} style={{ width: "100%", background: "none", border: "none", padding: "14px 16px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, textAlign: "left" }}>
+                <div style={{ width: 40, height: 40, borderRadius: 12, background: color + "22", border: `2px solid ${color}`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 16, color, flexShrink: 0 }}>{opt.score}</div>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: 14, color: "#222" }}>{opt.name}</div>
+                  <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>{opt.verdict}</div>
+                </div>
+              </div>
+              <div style={{ fontSize: 18, color: "#ccc", flexShrink: 0 }}>{isOpen ? "▲" : "▼"}</div>
+            </button>
+            {isOpen && (
+              <div style={{ padding: "0 16px 16px" }}>
+                <div style={{ borderTop: "1px solid #f0f0f0", paddingTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+                  {opt.steps.map((step, si) => (
+                    <div key={si} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                      <div style={{ width: 24, height: 24, borderRadius: "50%", background: color, color: "white", fontSize: 11, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>{si + 1}</div>
+                      <div style={{ fontSize: 13, color: "#444", lineHeight: 1.5 }}>{step}</div>
+                    </div>
+                  ))}
+                  {opt.tip && (
+                    <div style={{ background: "#fffbea", border: "1px solid #ffe066", borderRadius: 12, padding: "8px 12px", fontSize: 12, color: "#886600", marginTop: 4 }}>
+                      💡 {opt.tip}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+      {data.bestPick && (
+        <div style={{ background: "#e6fff5", border: "2px solid #00c875", borderRadius: 20, padding: "12px 16px" }}>
+          <div style={{ fontWeight: 800, fontSize: 12, color: "#007a45", marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>🏆 Best pick for you</div>
+          <div style={{ fontSize: 13, color: "#333" }}>{data.bestPick}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+({ label, score, icon }) {
   const color = score >= 7 ? "#00c875" : score >= 4 ? "#ffb800" : "#ff4444";
   const size = 72; const r = 28; const circ = 2 * Math.PI * r; const dash = (score / 10) * circ;
   return (
@@ -363,6 +456,8 @@ export default function App() {
               {m.text && <span style={{ fontSize: 15, lineHeight: 1.5 }}>{m.text}</span>}
             </div>
           );
+          const recipe = parseRecipe(m.text || "");
+          if (recipe) return <RecipeCard key={i} data={recipe} />;
           const broad = parseBroad(m.text || "");
           if (broad) return <BroadCard key={i} data={broad} onFollowup={q => send(q)} />;
           return <ResultCard key={i} m={m} />;
