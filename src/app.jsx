@@ -63,13 +63,19 @@ RECIPE: true
 INTRO: [1 witty sentence acknowledging what Dan has]
 
 OPTION_1_NAME: [recipe name]
-OPTION_1_SCORE: [1-10 overall healthiness for Dan]
+OPTION_1_ZOE: [1-10]
+OPTION_1_GG: [1-10]
+OPTION_1_UPF: [1-10]
+OPTION_1_PROTEIN_G: [grams per serving]
 OPTION_1_VERDICT: [good/ok/avoid and why in 1 sentence]
 OPTION_1_METHOD: [3-5 short steps, each on a new line starting with a number]
 OPTION_1_TIP: [one glucose/nutrition tip specific to this recipe]
 
 OPTION_2_NAME: [recipe name]
-OPTION_2_SCORE: [1-10]
+OPTION_2_ZOE: [1-10]
+OPTION_2_GG: [1-10]
+OPTION_2_UPF: [1-10]
+OPTION_2_PROTEIN_G: [grams per serving]
 OPTION_2_VERDICT: [good/ok/avoid and why in 1 sentence]
 OPTION_2_METHOD: [3-5 short steps]
 OPTION_2_TIP: [one tip]
@@ -236,7 +242,114 @@ function RecipeCard({ data }) {
   );
 }
 
-function ScoreCircle({ label, score, icon }) {
+function BroadCard({ data, onFollowup }) {
+  const typeStyle = {
+    best: { bg: "#e6fff5", border: "#00c875", icon: "✅", label: "Best pick" },
+    ok: { bg: "#fff8e6", border: "#ffb800", icon: "⚠️", label: "It depends" },
+    avoid: { bg: "#fff0f0", border: "#ff4444", icon: "❌", label: "Avoid" }
+  };
+  return (
+    <div style={{ maxWidth: "92%", alignSelf: "flex-start", display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ background: "white", borderRadius: 24, overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.1)" }}>
+        <div style={{ background: "linear-gradient(135deg,#1b4332,#2d6a4f)", padding: "14px 18px" }}>
+          <div style={{ color: "white", fontWeight: 900, fontSize: 18 }}>🤔 It depends!</div>
+          <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 13, marginTop: 3 }}>{data.headline}</div>
+        </div>
+        <div style={{ padding: "14px 16px", display: "flex", flexDirection: "column", gap: 8 }}>
+          {data.variants.map((v, i) => {
+            const s = typeStyle[v.type];
+            return (
+              <div key={i} style={{ background: s.bg, border: `2px solid ${s.border}`, borderRadius: 14, padding: "10px 14px", display: "flex", gap: 10 }}>
+                <div style={{ fontSize: 18 }}>{s.icon}</div>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: 13, color: "#222" }}>{s.label}: {v.name}</div>
+                  <div style={{ fontSize: 12, color: "#666", marginTop: 2 }}>{v.why}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        {data.followup && (
+          <div style={{ padding: "0 16px 16px" }}>
+            <div style={{ background: "#f0f7f4", borderRadius: 14, padding: "12px 14px" }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#2d6a4f", marginBottom: 6 }}>💬 {data.followup}</div>
+              <input placeholder="Type your answer..." onKeyDown={e => { if (e.key === "Enter" && e.target.value.trim()) { onFollowup(e.target.value); e.target.value = ""; } }} style={{ width: "100%", padding: "8px 12px", borderRadius: 10, border: "2px solid #d0e8da", fontSize: 13, fontFamily: "inherit", outline: "none", boxSizing: "border-box", background: "white" }} />
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ResultCard({ m }) {
+  const p = parseReply(m.text || "");
+  if (!p) return (
+    <div style={{ maxWidth: "88%", alignSelf: "flex-start", background: "white", borderRadius: 20, padding: 16, boxShadow: "0 2px 12px rgba(0,0,0,0.08)", fontSize: 15, lineHeight: 1.6, color: "#333" }}>
+      <span style={{ whiteSpace: "pre-wrap" }}>{m.text}</span>
+    </div>
+  );
+  const avg = Math.round((p.zoe + p.gg + p.upf) / 3);
+  const vStyle = avg >= 7 ? { label: "Great choice! 🎉", bg: "linear-gradient(135deg,#00b865,#00c875)" } : avg >= 4 ? { label: "OK in moderation ⚠️", bg: "linear-gradient(135deg,#f0a500,#ffb800)" } : { label: "Best avoided ❌", bg: "linear-gradient(135deg,#e03030,#ff4444)" };
+  const isPersonal = p.source?.toLowerCase().includes("zoe");
+  return (
+    <div style={{ maxWidth: "92%", alignSelf: "flex-start", display: "flex", flexDirection: "column", gap: 8 }}>
+      {p.identified && p.identified !== "N/A" && (
+        <div style={{ background: "#f0f7f4", borderRadius: 20, padding: "10px 16px", display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 18 }}>👀</span>
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#2d6a4f", textTransform: "uppercase", letterSpacing: 0.5 }}>I can see...</div>
+            <div style={{ fontSize: 13, color: "#333", fontWeight: 600 }}>{p.identified}</div>
+          </div>
+        </div>
+      )}
+      <div style={{ background: vStyle.bg, borderRadius: 20, padding: "14px 18px", boxShadow: "0 4px 14px rgba(0,0,0,0.15)" }}>
+        <div style={{ color: "white", fontWeight: 900, fontSize: 20, marginBottom: 2 }}>{vStyle.label}</div>
+        {p.verdict && <div style={{ color: "white", fontSize: 13, opacity: 0.85, fontStyle: "italic" }}>{p.verdict}</div>}
+      </div>
+      <div style={{ background: "white", borderRadius: 20, padding: "16px 12px", boxShadow: "0 2px 12px rgba(0,0,0,0.08)", display: "flex", justifyContent: "space-around", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+        <ScoreCircle label="Zoe" score={p.zoe} icon="🧬" />
+        <ScoreCircle label="Glucose" score={p.gg} icon="🩸" />
+        <ScoreCircle label="UPF" score={p.upf} icon="🏭" />
+        {p.proteinG > 0 && (() => {
+          const pct = Math.round((p.proteinG / 140) * 100);
+          const color = p.proteinG >= 20 ? "#00c875" : p.proteinG >= 10 ? "#ffb800" : "#ff4444";
+          const label = p.proteinG >= 20 ? "High 💪" : p.proteinG >= 10 ? "Moderate" : "Low";
+          return (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+              <div style={{ background: color + "22", border: "2px solid " + color, borderRadius: 14, padding: "6px 12px", textAlign: "center", minWidth: 60 }}>
+                <div style={{ fontSize: 20, fontWeight: 900, color, lineHeight: 1 }}>{p.proteinG}g</div>
+                <div style={{ fontSize: 9, color, fontWeight: 700, marginTop: 2 }}>{pct}% of 140g</div>
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#666" }}>💪 Protein</div>
+              <div style={{ fontSize: 10, color, fontWeight: 600 }}>{label}</div>
+            </div>
+          );
+        })()}
+      </div>
+      {p.summary && (
+        <div style={{ background: "white", borderRadius: 20, padding: "14px 16px", boxShadow: "0 2px 10px rgba(0,0,0,0.07)", fontSize: 14, lineHeight: 1.7, color: "#444" }}>{p.summary}</div>
+      )}
+      {p.tips?.length > 0 && (
+        <div style={{ background: "#fffbea", border: "2px solid #ffe066", borderRadius: 20, padding: "12px 16px" }}>
+          <div style={{ fontWeight: 900, fontSize: 12, color: "#cc9900", marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.5 }}>💡 If you eat this</div>
+          {p.tips.map((tip, i) => (
+            <div key={i} style={{ fontSize: 13, color: "#555", lineHeight: 1.6, marginBottom: i < p.tips.length-1 ? 6 : 0, display: "flex", gap: 8 }}>
+              <span style={{ color: "#ffb800", fontWeight: 700 }}>→</span><span>{tip}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 20, background: isPersonal ? "#e6fff5" : "#fff8e6", fontSize: 10, fontWeight: 700, color: isPersonal ? "#007a45" : "#aa8000" }}>
+          {isPersonal ? "🧬 Your personal Zoe data" : "📚 General knowledge"}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+({ label, score, icon }) {
   const color = score >= 7 ? "#00c875" : score >= 4 ? "#ffb800" : "#ff4444";
   const size = 72; const r = 28; const circ = 2 * Math.PI * r; const dash = (score / 10) * circ;
   return (
