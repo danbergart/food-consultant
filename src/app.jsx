@@ -550,6 +550,7 @@ export default function App() {
           <div>
             <div style={{ color: "white", fontWeight: 900, fontSize: 20, letterSpacing: -0.5 }}>Food Consultant</div>
             <div style={{ color: "rgba(255,255,255,0.65)", fontSize: 11 }}>Your Zoe · Glucose Goddess · UPF science</div>
+          <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 9, marginTop: 1 }}>v20</div>
           </div>
         </div>
       </div>
