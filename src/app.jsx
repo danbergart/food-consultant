@@ -106,6 +106,7 @@ function ScoreCircle({ label, score, icon }) {
         <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
           <span style={{ fontSize: 18, fontWeight: 900, color, lineHeight: 1 }}>{score}</span>
           <span style={{ fontSize: 9, color: "#999", lineHeight: 1 }}>/10</span>
+          <span className="eink-only" style={{ fontSize: 10, fontWeight: 900, lineHeight: 1.2 }}>{score >= 7 ? "GOOD" : score >= 4 ? "OK" : "POOR"}</span>
         </div>
       </div>
       <div style={{ fontSize: 11, fontWeight: 700, color: "#666", textAlign: "center" }}>{icon} {label}</div>
@@ -129,7 +130,7 @@ function CookMode({ recipe, onClose }) {
       </div>
       <div style={{ padding: "0 20px 10px", flexShrink: 0 }}>
         <div style={{ background: "rgba(255,255,255,0.15)", borderRadius: 10, height: 6 }}>
-          <div style={{ background: "#00c875", height: 6, borderRadius: 10, width: pct + "%", transition: "width 0.4s" }} />
+          <div className="bar" style={{ background: "#00c875", height: 6, borderRadius: 10, width: pct + "%", transition: "width 0.4s" }} />
         </div>
         <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, marginTop: 6 }}>Step {step + 1} of {total}</div>
       </div>
@@ -367,12 +368,14 @@ function LockScreen({ onUnlock }) {
 
 export default function App() {
   const [unlocked, setUnlocked] = useState(false);
+  const [eink, setEink] = useState(() => { try { return localStorage.getItem("fc_eink") !== "0"; } catch { return true; } });
+  const toggleEink = () => setEink(v => { try { localStorage.setItem("fc_eink", v ? "0" : "1"); } catch {} return !v; });
   const [chat, setChat] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState([]);
   const endRef = useRef(null);
-  const scroll = () => setTimeout(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+  const scroll = () => setTimeout(() => endRef.current?.scrollIntoView({ behavior: eink ? "auto" : "smooth" }), 50);
 
   if (!unlocked) return <LockScreen onUnlock={() => setUnlocked(true)} />;
 
@@ -400,14 +403,15 @@ export default function App() {
   const isEmpty = chat.length === 0;
 
   return (
-    <div style={{ fontFamily: "system-ui,sans-serif", maxWidth: 600, margin: "0 auto", height: "100dvh", display: "flex", flexDirection: "column", background: "#f5f8f5" }}>
+    <div className={eink ? "eink" : ""} style={{ fontFamily: "system-ui,sans-serif", maxWidth: 600, margin: "0 auto", height: "100dvh", display: "flex", flexDirection: "column", background: "#f5f8f5" }}>
       <div style={{ background: "linear-gradient(135deg,#1b4332,#2d6a4f)", padding: "16px 20px", flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ fontSize: 28, letterSpacing: 1 }}>🍎🥑🍫🥚🍕</div>
+          <div className="hide-eink" style={{ fontSize: 28, letterSpacing: 1 }}>🍎🥑🍫🥚🍕</div>
           <div>
             <div style={{ color: "white", fontWeight: 900, fontSize: 20, letterSpacing: -0.5 }}>Food Consultant</div>
             <div style={{ color: "rgba(255,255,255,0.65)", fontSize: 11 }}>Your Zoe · Glucose Goddess · UPF science</div>
           </div>
+          <button onClick={toggleEink} style={{ marginLeft: "auto", background: "rgba(255,255,255,0.15)", color: "white", border: "1px solid rgba(255,255,255,0.4)", borderRadius: 10, padding: "8px 10px", fontSize: 12, fontWeight: 700, minHeight: 40 }}>{eink ? "E-ink: ON" : "E-ink: OFF"}</button>
         </div>
       </div>
 
@@ -440,7 +444,7 @@ export default function App() {
         })}
         {loading && (
           <div style={{ alignSelf: "flex-start", background: "white", borderRadius: 20, padding: "14px 18px", boxShadow: "0 2px 10px rgba(0,0,0,0.08)", display: "flex", gap: 6, alignItems: "center" }}>
-            {[0,1,2].map(i => <div key={i} style={{ width: 9, height: 9, borderRadius: "50%", background: "#2d6a4f", animation: "bounce 1.2s infinite", animationDelay: i * 0.2 + "s" }} />)}
+            {eink ? <span style={{ fontSize: 16, fontWeight: 700 }}>Thinking…</span> : [0,1,2].map(i => <div key={i} style={{ width: 9, height: 9, borderRadius: "50%", background: "#2d6a4f", animation: "bounce 1.2s infinite", animationDelay: i * 0.2 + "s" }} />)}
           </div>
         )}
         <div ref={endRef} />
@@ -472,7 +476,7 @@ export default function App() {
           <textarea
             value={input}
             onChange={e => setInput(e.target.value)}
-            onFocus={e => setTimeout(() => e.target.scrollIntoView({ behavior: "smooth", block: "center" }), 300)}
+            onFocus={e => setTimeout(() => e.target.scrollIntoView({ behavior: eink ? "auto" : "smooth", block: "center" }), 300)}
             onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
             placeholder="e.g. oat milk, avocado toast, what can I make with eggs..."
             style={{ flex: 1, padding: "13px 16px", borderRadius: 16, border: "2px solid #d0e8da", resize: "none", fontSize: 15, fontFamily: "inherit", outline: "none", minHeight: 48, maxHeight: 120, lineHeight: 1.4, background: "#f9fcf9" }}
@@ -487,7 +491,7 @@ export default function App() {
         <div style={{ textAlign: "right", fontSize: 9, color: "#ccc", marginTop: 4 }}>v21</div>
       </div>
 
-      <style>{`@keyframes bounce{0%,80%,100%{transform:scale(0.6);opacity:0.4}40%{transform:scale(1);opacity:1}}`}</style>
+      <style>{`.eink-only{display:none}.eink .eink-only{display:inline}.eink,.eink *{box-shadow:none!important;text-shadow:none!important;animation:none!important;transition:none!important;opacity:1!important}.eink,.eink [style*="background"]{background:#fff!important}.eink *{color:#000!important}.eink [style*="box-shadow"],.eink [style*="gradient"],.eink button,.eink input,.eink textarea{border:2px solid #000!important}.eink [style*="border:"],.eink [style*="border: "]{border-color:#000!important}.eink .hide-eink{display:none!important}.eink button{white-space:nowrap}.eink .bar{background:#000!important}.eink svg circle:first-child{stroke:#ccc!important}.eink svg circle:last-child{stroke:#000!important}.eink [style*="font-size: 9px"],.eink [style*="font-size: 10px"],.eink [style*="font-size: 11px"],.eink [style*="font-size: 12px"]{font-size:14px!important}.eink [style*="font-size: 13px"],.eink [style*="font-size: 14px"],.eink [style*="font-size: 15px"]{font-size:17px!important;line-height:1.6!important}.eink [style*="font-weight: 600"],.eink [style*="font-weight: 700"]{font-weight:800!important}@keyframes bounce{0%,80%,100%{transform:scale(0.6);opacity:0.4}40%{transform:scale(1);opacity:1}}`}</style>
     </div>
   );
 }
